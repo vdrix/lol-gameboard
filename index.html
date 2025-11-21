@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LoL Board">
+    <link rel="apple-touch-icon" href="https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/content/src/leagueclient/gamemodeassets/classic/img/icon-victory.png">
+    
+    <title>LoL Gameboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f9fafb;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-color: #3b82f6;
+            --accent-text-color: #ffffff;
+            
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- THEME DEFINITIONS --- */
+        .theme-dark {
+            --bg-primary: #111827; --bg-secondary: #1f2937; --bg-tertiary: #374151;
+            --text-primary: #f9fafb; --text-secondary: #d1d5db; --text-muted: #9ca3af;
+            --border-color: #4b5563;
+            --accent-color: #60a5fa;
+            --accent-text-color: #111827;
+        }
+        .theme-piltover {
+            --bg-primary: #e8f1f5; --bg-secondary: #ffffff; --bg-tertiary: #f0f6f8;
+            --text-primary: #0a1428; --text-secondary: #032a4e; --text-muted: #5b7c99;
+            --border-color: #cdd8e0;
+            --accent-color: #0b5c8a;
+            --accent-text-color: #ffffff;
+        }
+        .theme-shadow-isles {
+            --bg-primary: #0a1c24; --bg-secondary: #0e2933; --bg-tertiary: #123745;
+            --text-primary: #a0f2e8; --text-secondary: #88d4c9; --text-muted: #6ca79e;
+            --border-color: #1a545e;
+            --accent-color: #31a293;
+            --accent-text-color: #0a1c24;
+        }
+        .theme-bilgewater {
+            --bg-primary: #2c2f33; --bg-secondary: #23272a; --bg-tertiary: #3a3e42;
+            --text-primary: #f2a900; --text-secondary: #e6e6e6; --text-muted: #99aab5;
+            --border-color: #50555a;
+            --accent-color: #c87c00;
+            --accent-text-color: #ffffff;
+        }
+        .theme-ionia {
+            --bg-primary: #f0f7f4; --bg-secondary: #ffffff; --bg-tertiary: #fafdfb;
+            --text-primary: #3a5a40; --text-secondary: #588157; --text-muted: #84a98c;
+            --border-color: #cad6c5;
+            --accent-color: #a3b18a;
+            --accent-text-color: #3a5a40;
+        }
+        .theme-shurima {
+            --bg-primary: #faf3e0; --bg-secondary: #ffffff; --bg-tertiary: #fffaf0;
+            --text-primary: #5e4504; --text-secondary: #8c6d32; --text-muted: #bda06d;
+            --border-color: #e3d5b8;
+            --accent-color: #d4af37;
+            --accent-text-color: #5e4504;
+        }
+
+        /* --- THEMED COMPONENT STYLES --- */
+        body { background-color: var(--bg-primary); color: var(--text-primary); }
+        
+        .themed-bg-secondary { background-color: var(--bg-secondary); }
+        .themed-bg-tertiary { background-color: var(--bg-tertiary); }
+        .themed-bg-accent { background-color: var(--accent-color); }
+        .themed-text-primary { color: var(--text-primary); }
+        .themed-text-secondary { color: var(--text-secondary); }
+        .themed-text-muted { color: var(--text-muted); }
+        .themed-text-accent { color: var(--accent-color); }
+        .themed-border { border-color: var(--border-color); }
+        
+        input, select, textarea {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 16px !important;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .sortable-ghost { opacity: 0.4; background: #60a5fa; }
+
+        .champion-card.selected {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        .champion-card.selected .themed-text-primary,
+        .champion-card.selected .themed-text-muted {
+            color: var(--accent-text-color);
+        }
+
+        .preset-scout-btn .delete-preset-btn {
+            opacity: 0;
+            transition: opacity 0.15s ease-in-out;
+        }
+        .preset-scout-btn:hover .delete-preset-btn {
+            opacity: 1;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="transition-colors duration-300">
+
+    <div class="container mx-auto p-4 pb-20">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl md:text-3xl font-bold themed-text-primary">LoL Gameboard</h1>
+             <div class="flex items-center gap-2">
+                <label for="themeSelector" class="hidden md:block text-sm font-medium themed-text-secondary">Theme:</label>
+                <select id="themeSelector" class="p-2 rounded-md text-sm w-32">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="piltover">Piltover</option>
+                    <option value="shadow-isles">Shadow Isles</option>
+                    <option value="bilgewater" selected>Bilgewater</option>
+                    <option value="ionia">Ionia</option>
+                    <option value="shurima">Shurima</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Live Scouting & Champion Viewer Section -->
+        <div class="themed-bg-secondary shadow rounded-lg p-3 md:p-4 mb-4">
+            <h2 class="text-lg md:text-xl font-semibold mb-2 cursor-pointer themed-text-primary" data-collapsible="championViewerSection">Live Scouting & Champion Viewer</h2>
+            <div id="championViewerSection">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <!-- Left Panel: Champion Pool -->
+                    <div class="md:w-1/3">
+                        <h3 class="font-semibold mb-2 themed-text-primary">Live Game Scouting</h3>
+                        <div class="space-y-2 mb-4 border-b pb-4 themed-border">
+                            <input type="text" id="liveGameRiotId" placeholder="Enter Riot ID (e.g., name#tag)" class="w-full p-3 rounded-md">
+                            <button id="fetchLiveGame" class="w-full px-4 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium" disabled>Fetch & Add Champions</button>
+                            <p id="liveGameStatus" class="text-sm mt-2 text-center"></p>
+                            
+                            <div id="presetScoutsContainer" class="mt-2"></div>
+                            <div class="flex gap-2 mt-2">
+                                <input type="text" id="newPresetInput" placeholder="Add Riot ID (name#tag)" class="w-full p-2 rounded-md text-sm">
+                                <button id="addPresetBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Add</button>
+                            </div>
+                        </div>
+
+                        <div id="gameStatsContainer" class="hidden space-y-2 mb-4 border-b pb-4 themed-border">
+                            <h3 class="font-semibold themed-text-primary">Game Analysis</h3>
+                            <div id="gameAverageRank" class="themed-text-secondary"></div>
+                             <div id="allyTeamWinrate" class="themed-text-secondary"></div>
+                            <div id="enemyTeamWinrate" class="themed-text-secondary"></div>
+                            <div id="teamCompositionAnalysis" class="space-y-1"></div>
+                        </div>
+
+                        <h3 class="font-semibold mb-2 themed-text-primary">Champion Pool</h3>
+                        <div class="mb-2">
+                            <label for="winrateRankSelector" class="text-sm themed-text-muted">Winrate for Rank:</label>
+                            <select id="winrateRankSelector" class="w-full p-2 rounded-md text-sm">
+                                <option value="iron">Iron</option>
+                                <option value="bronze">Bronze</option>
+                                <option value="silver">Silver</option>
+                                <option value="gold">Gold</option>
+                                <option value="platinum">Platinum</option>
+                                <option value="emerald" selected>Emerald</option>
+                                <option value="diamond">Diamond</option>
+                                <option value="master">Master</option>
+                                <option value="grandmaster">Grandmaster</option>
+                                <option value="challenger">Challenger</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2 mb-2">
+                            <select id="championSelect" class="w-full p-3 rounded-md disabled:opacity-50" disabled>
+                                <option value="">Loading champion data...</option>
+                            </select>
+                        </div>
+                        <div id="championPool" class="space-y-1"></div>
+                        <button id="clearChampionPool" class="mt-2 w-full px-4 py-3 bg-red-500 text-white rounded-md hover:bg-red-600 font-medium">Clear Viewer Pool</button>
+                    
+                        <div id="saveGameContainer" class="hidden mt-4 p-3 themed-bg-tertiary border themed-border rounded-lg">
+                            <h4 class="font-semibold mb-2 themed-text-primary">Save Current Game</h4>
+                            <label for="gameTitleInput" class="text-sm themed-text-muted">Match Title:</label>
+                            <input type="text" id="gameTitleInput" class="w-full p-2 rounded-md mt-1 mb-2" placeholder="e.g. Ranked vs Teemo">
+                            
+                            <label for="gameNotes" class="text-sm themed-text-muted">Game Notes:</label>
+                            <textarea id="gameNotes" rows="3" class="w-full p-2 rounded-md mt-1" placeholder="e.g., Enemy team is full AD..."></textarea>
+                            <button id="saveGameBtn" class="mt-2 w-full px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600">Save Game Set</button>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Champion Details & High-Risk Abilities -->
+                    <div class="md:w-2/3" id="detailsPanel">
+                        <div class="border-b themed-border overflow-x-auto">
+                            <nav class="-mb-px flex space-x-4 md:space-x-8" aria-label="Tabs">
+                                <button class="tab-button border-transparent themed-text-muted hover:themed-text-secondary hover:border-gray-300 whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm" data-tab="championDetailsTab">Details</button>
+                                <button class="tab-button border-transparent themed-text-muted hover:themed-text-secondary hover:border-gray-300 whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm" data-tab="highRiskAbilitiesTab">Abilities</button>
+                                <button class="tab-button border-transparent themed-text-muted hover:themed-text-secondary hover:border-gray-300 whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm" data-tab="comparisonChartTab">Stats</button>
+                            </nav>
+                        </div>
+                        <div id="championDetailsTab" class="tab-content p-2 md:p-4 themed-text-secondary">Select a champion from the pool to see details.</div>
+                        <div id="highRiskAbilitiesTab" class="tab-content hidden p-2 md:p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="font-semibold themed-text-primary text-sm md:text-base">High-Risk Abilities (Drag)</h3>
+                                <div class="flex items-center gap-2">
+                                    <label for="globalHasteInput" class="text-xs md:text-sm themed-text-secondary">Haste:</label>
+                                    <input type="number" id="globalHasteInput" class="w-16 md:w-20 p-1 rounded-md text-sm text-center" value="0" min="0">
+                                </div>
+                            </div>
+                             <div id="high-risk-filter-container" class="hidden items-center space-x-2 mb-2">
+                                <label for="enemy-only-toggle" class="text-sm themed-text-secondary">Show Enemy Only</label>
+                                <input type="checkbox" id="enemy-only-toggle" class="rounded h-5 w-5 text-blue-600 focus:ring-blue-500">
+                            </div>
+                            <ul id="highRiskAbilitiesList" class="space-y-2"></ul>
+                        </div>
+                        <div id="comparisonChartTab" class="tab-content hidden p-2 md:p-4">
+                            <div class="flex items-center gap-4 mb-4">
+                                <label for="chartStatSelector" class="themed-text-secondary text-sm">Compare:</label>
+                                <select id="chartStatSelector" class="p-2 rounded-md text-sm flex-grow">
+                                    <option value="attackrange">Attack Range</option>
+                                    <option value="hp">Base HP</option>
+                                    <option value="armor">Base Armor</option>
+                                    <option value="attackdamage">Base Attack Damage</option>
+                                    <option value="movespeed">Base Movement Speed</option>
+                                    <option value="ultcooldown-1">Ultimate Cooldown (Rank 1)</option>
+                                    <option value="ultcooldown-2">Ultimate Cooldown (Rank 2)</option>
+                                    <option value="ultcooldown-3">Ultimate Cooldown (Rank 3)</option>
+                                    <option value="winrate">Win Rate (Current Rank)</option>
+                                </select>
+                            </div>
+                            <div id="chartContainer" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Game Sets Section -->
+        <div class="themed-bg-secondary shadow rounded-lg p-3 md:p-4 mb-4">
+            <h2 class="text-lg md:text-xl font-semibold mb-2 cursor-pointer themed-text-primary" data-collapsible="savedGamesSection">Saved Games</h2>
+            <div id="savedGamesSection">
+                 <div class="mb-4">
+                    <input type="text" id="searchGameSets" placeholder="Search by title, notes, or champion..." class="w-full p-3 rounded-md">
+                </div>
+                <div id="savedGamesList" class="space-y-3">You have no saved games.</div>
+            </div>
+        </div>
+
+
+        <!-- Manual Scouting Section -->
+        <div class="themed-bg-secondary shadow rounded-lg p-3 md:p-4 mb-4">
+            <h2 class="text-lg md:text-xl font-semibold mb-2 cursor-pointer themed-text-primary" data-collapsible="manualScoutingSection">Manual Scouting Report</h2>
+            <div id="manualScoutingSection" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="opponentRiotIds" class="block mb-1 themed-text-secondary">Players to Scout (one per line):</label>
+                        <textarea id="opponentRiotIds" rows="5" class="w-full p-2 rounded-md" placeholder="name1#tag1&#x0a;name2#tag2"></textarea>
+                    </div>
+                    <div>
+                        <label for="gamesToAnalyze" class="block mb-1 themed-text-secondary">Games to Analyze:</label>
+                        <select id="gamesToAnalyze" class="w-full p-3 rounded-md">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                        </select>
+                        <button id="generateScoutingReport" class="mt-4 w-full px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600">Generate Scouting Report</button>
+                    </div>
+                </div>
+                <div id="scoutingReportResults" class="mt-4">
+                    <div id="scoutingLoader" class="hidden text-center">
+                        <p class="themed-text-secondary">Loading scouting report...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Key Section -->
+        <div class="themed-bg-secondary shadow rounded-lg p-3 md:p-4 mb-4 pb-10">
+            <h2 class="text-lg md:text-xl font-semibold mb-2 cursor-pointer themed-text-primary" data-collapsible="apiKeySection">API Key & Region</h2>
+            <div id="apiKeySection">
+                <p class="text-sm themed-text-muted mb-2">A Riot Games API key is required.</p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input type="password" id="apiKey" placeholder="Enter your Riot API Key" class="flex-grow p-3 rounded-md">
+                    <select id="regionSelector" class="p-3 rounded-md">
+                        <option value="americas" data-platform="na1">NA</option>
+                        <option value="europe" data-platform="euw1">EUW</option>
+                        <option value="asia" data-platform="kr">KR</option>
+                    </select>
+                    <button id="saveApiKey" class="px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600">Save</button>
+                </div>
+                <p id="apiKeyStatus" class="text-sm mt-2"></p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- STATE & CONFIG ---
+            let apiKey = '';
+            let latestVersion = '';
+            let championData = {};
+            let championPool = new Map();
+            let prioritizedAbilities = [];
+            let enemyChampionIds = new Set();
+            let showOnlyEnemies = false;
+            let savedGameSets = [];
+            let currentGameData = null;
+            let liveGameChampionMap = new Map();
+            let gameAverageRank = { text: 'N/A', tierName: 'UNRANKED' };
+            let fetchedPublicWinrates = {};
+            let presetScouts = [];
+            let globalHaste = 0;
+            let editingGameId = null; // Track which game is being edited
+
+            // Embedded dataset for champion matchups
+            const matchupData = { "Aatrox": { "good": ["Yone", "Yasuo", "Irelia"], "bad": ["Fiora", "Olaf", "Kled"] }, "Ahri": { "good": ["Akali", "Sylas", "LeBlanc"], "bad": ["Fizz", "Kassadin", "Malzahar"] }, "Jax": { "good": ["Fiora", "Irelia", "Yasuo"], "bad": ["Malphite", "Teemo", "Gnar"] }, "Yasuo": { "good": ["Zoe", "Ahri", "Syndra"], "bad": ["Annie", "Malzahar", "Renekton"] }};
+
+            // --- DATA MAPPING & LOCAL DATA ---
+            const rankToValue = {"IRON":0,"BRONZE":4,"SILVER":8,"GOLD":12,"PLATINUM":16,"EMERALD":20,"DIAMOND":24,"MASTER":28,"GRANDMASTER":28,"CHALLENGER":28};
+            const valueToRank = ["IRON IV","IRON III","IRON II","IRON I","BRONZE IV","BRONZE III","BRONZE II","BRONZE I","SILVER IV","SILVER III","SILVER II","SILVER I","GOLD IV","GOLD III","GOLD II","GOLD I","PLATINUM IV","PLATINUM III","PLATINUM II","PLATINUM I","EMERALD IV","EMERALD III","EMERALD II","EMERALD I","DIAMOND IV","DIAMOND III","DIAMOND II","DIAMOND I","MASTER TIER"];
+            const publicWinrateData = {"iron":{"Aatrox":49.3,"Ahri":50.2,"Akali":47.2,"Akshan":50.1,"Alistar":50.2,"Amumu":51.5,"Anivia":50.8,"Annie":51.8,"Aphelios":47.3,"Ashe":51.6,"AurelionSol":53.2,"Azir":44.5,"Bard":49.1,"Belveth":50.7,"Blitzcrank":50.5,"Brand":51.3,"Braum":48.8,"Briar":51.9,"Caitlyn":49.3,"Camille":48.1,"Cassiopeia":48.5,"Chogath":51.2,"Corki":46.5,"Darius":49.3,"Diana":50.4,"DrMundo":50.5,"Draven":49.7,"Ekko":49.6,"Elise":47.8,"Evelynn":50.1,"Ezreal":48.2,"Fiddlesticks":51.2,"Fiora":48.4,"Fizz":50.2,"Galio":50.3,"Gangplank":47.8,"Garen":52.1,"Gnar":48.5,"Gragas":49.3,"Graves":49.2,"Gwen":48.6,"Hecarim":50.1,"Heimerdinger":51.4,"Hwei":46.7,"Illaoi":51.8,"Irelia":48.9,"Ivern":51.5,"Janna":51.9,"JarvanIV":49.9,"Jax":50.9,"Jayce":46.5,"Jhin":50.8,"Jinx":50.8,"Kaisa":48.5,"Kalista":46.1,"Karma":49.5,"Karthus":50.5,"Kassadin":50.5,"Katarina":49.3,"Kayle":51.9,"Kayn":50.5,"Kennen":49.6,"Khazix":50.1,"Kindred":49.2,"Kled":49.7,"KogMaw":50.1,"Ksante":46.2,"Leblanc":47.4,"LeeSin":47.2,"Leona":50.9,"Lillia":50.9,"Lissandra":48.9,"Lucian":48.1,"Lulu":49.8,"Lux":51.1,"Malphite":50.8,"Malzahar":51.8,"Maokai":51.4,"MasterYi":51.8,"Milio":50.3,"MissFortune":52.1,"Mordekaiser":50.8,"Morgana":50.2,"Naafiri":51.1,"Nami":50.4,"Nasus":52.3,"Nautilus":51.1,"Neeko":50.1,"Nidalee":46.7,"Nilah":50.6,"Nocturne":52.1,"Nunu":50.7,"Olaf":51.1,"Orianna":48.3,"Ornn":50.2,"Pantheon":50.1,"Poppy":50.1,"Pyke":49.2,"Qiyana":48.1,"Quinn":51.0,"Rakan":50.4,"Rammus":51.9,"RekSai":49.7,"Rell":49.8,"RenataGlasc":49.5,"Renekton":48.0,"Rengar":49.2,"Riven":48.4,"Rumble":50.2,"Ryze":46.9,"Samira":49.9,"Sejuani":49.1,"Senna":51.5,"Seraphine":51.0,"Sett":51.1,"Shaco":51.2,"Shen":50.8,"Shyvana":51.6,"Singed":51.0,"Sion":50.5,"Sivir":50.6,"Skarner":52.3,"Smolder":50.0,"Sona":51.3,"Soraka":51.3,"Swain":51.6,"Sylas":49.0,"Syndra":48.7,"TahmKench":50.2,"Taliyah":49.1,"Talon":49.7,"Taric":50.9,"Teemo":51.4,"Thresh":49.9,"Tristana":50.6,"Trundle":50.3,"Tryndamere":51.3,"TwistedFate":50.1,"Twitch":51.0,"Udyr":50.8,"Urgot":51.9,"Varus":48.9,"Vayne":50.9,"Veigar":51.6,"Vex":51.2,"Vi":49.7,"Viego":49.1,"Viktor":48.9,"Vladimir":50.9,"Volibear":51.1,"Warwick":51.8,"Wukong":50.0,"Xayah":49.0,"Xerath":51.1,"XinZhao":50.2,"Yasuo":49.1,"Yone":49.4,"Yorick":52.0,"Yuumi":47.9,"Zac":51.2,"Zed":49.1,"Zeri":49.5,"Ziggs":51.4,"Zilean":51.6,"Zoe":48.6,"Zyra":51.6}, "emerald": {"Aatrox":50.2,"Ahri":50.1,"Akali":49.0,"Akshan":52.1,"Alistar":51.6,"Amumu":51.3,"Anivia":52.3,"Annie":52.6,"Aphelios":48.8,"Ashe":51.9,"AurelionSol":51.8,"Azir":47.7,"Bard":52.4,"Belveth":52.3,"Blitzcrank":51.7,"Brand":52.5,"Braum":50.1,"Briar":52.4,"Caitlyn":49.6,"Camille":50.9,"Cassiopeia":51.3,"Chogath":50.8,"Corki":46.1,"Darius":50.1,"Diana":51.3,"DrMundo":51.7,"Draven":51.5,"Ekko":50.8,"Elise":50.2,"Evelynn":51.5,"Ezreal":49.7,"Fiddlesticks":52.9,"Fiora":50.7,"Fizz":51.1,"Galio":51.3,"Gangplank":49.7,"Garen":51.5,"Gnar":49.2,"Gragas":51.1,"Graves":51.1,"Gwen":50.6,"Hecarim":51.1,"Heimerdinger":51.5,"Hwei":47.5,"Illaoi":51.6,"Irelia":50.7,"Ivern":53.4,"Janna":53.2,"JarvanIV":51.3,"Jax":51.3,"Jayce":49.1,"Jhin":50.9,"Jinx":52.2,"Kaisa":49.1,"Kalista":48.4,"Karma":49.5,"Karthus":51.5,"Kassadin":51.2,"Katarina":50.6,"Kayle":51.8,"Kayn":51.5,"Kennen":50.3,"Khazix":51.2,"Kindred":51.3,"Kled":51.4,"KogMaw":51.2,"Ksante":47.9,"Leblanc":48.7,"LeeSin":49.0,"Leona":51.6,"Lillia":52.4,"Lissandra":50.0,"Lucian":48.6,"Lulu":49.8,"Lux":50.6,"Malphite":51.0,"Malzahar":52.0,"Maokai":52.4,"MasterYi":51.4,"Milio":50.8,"MissFortune":51.9,"Mordekaiser":50.8,"Morgana":50.0,"Naafiri":52.1,"Nami":50.8,"Nasus":52.0,"Nautilus":51.8,"Neeko":51.1,"Nidalee":49.4,"Nilah":53.1,"Nocturne":52.5,"Nunu":52.0,"Olaf":52.4,"Orianna":48.7,"Ornn":50.6,"Pantheon":50.9,"Poppy":51.0,"Pyke":50.2,"Qiyana":50.9,"Quinn":52.2,"Rakan":51.8,"Rammus":52.8,"RekSai":52.1,"Rell":50.8,"RenataGlasc":50.4,"Renekton":48.8,"Rengar":51.0,"Riven":50.7,"Rumble":51.6,"Ryze":48.0,"Samira":50.9,"Sejuani":49.7,"Senna":51.9,"Seraphine":51.9,"Sett":50.9,"Shaco":51.9,"Shen":52.1,"Shyvana":52.2,"Singed":52.5,"Sion":51.0,"Sivir":51.2,"Skarner":54.1,"Smolder":50.0,"Sona":51.8,"Soraka":51.9,"Swain":52.6,"Sylas":50.5,"Syndra":49.0,"TahmKench":51.3,"Taliyah":51.6,"Talon":51.1,"Taric":52.1,"Teemo":51.0,"Thresh":51.2,"Tristana":51.1,"Trundle":50.8,"Tryndamere":51.6,"TwistedFate":51.5,"Twitch":52.1,"Udyr":51.4,"Urgot":51.9,"Varus":49.1,"Vayne":51.8,"Veigar":50.9,"Vex":51.6,"Vi":49.9,"Viego":50.3,"Viktor":49.9,"Vladimir":51.7,"Volibear":51.4,"Warwick":52.1,"Wukong":50.9,"Xayah":49.7,"Xerath":51.4,"XinZhao":50.9,"Yasuo":50.2,"Yone":50.3,"Yorick":52.2,"Yuumi":48.4,"Zac":52.0,"Zed":50.2,"Zeri":52.2,"Ziggs":52.4,"Zilean":53.1,"Zoe":50.0,"Zyra":52.5}};
+
+            // --- UI ELEMENTS ---
+            const themeSelector = document.getElementById('themeSelector');
+            const apiKeyInput = document.getElementById('apiKey');
+            const saveApiKeyBtn = document.getElementById('saveApiKey');
+            const apiKeyStatus = document.getElementById('apiKeyStatus');
+            const regionSelector = document.getElementById('regionSelector');
+            
+            const liveGameRiotIdInput = document.getElementById('liveGameRiotId');
+            const fetchLiveGameBtn = document.getElementById('fetchLiveGame');
+            const liveGameStatus = document.getElementById('liveGameStatus');
+            const presetScoutsContainer = document.getElementById('presetScoutsContainer');
+            const newPresetInput = document.getElementById('newPresetInput');
+            const addPresetBtn = document.getElementById('addPresetBtn');
+
+            const opponentRiotIdsTextarea = document.getElementById('opponentRiotIds');
+            const gamesToAnalyzeSelect = document.getElementById('gamesToAnalyze');
+            const generateScoutingReportBtn = document.getElementById('generateScoutingReport');
+            const scoutingReportResults = document.getElementById('scoutingReportResults');
+            const scoutingLoader = document.getElementById('scoutingLoader');
+
+            const championSelect = document.getElementById('championSelect');
+            const championPoolDiv = document.getElementById('championPool');
+            const clearChampionPoolBtn = document.getElementById('clearChampionPool');
+            const winrateRankSelector = document.getElementById('winrateRankSelector');
+            const updateWinratesBtn = document.getElementById('updateWinratesBtn');
+            const championDetailsTab = document.getElementById('championDetailsTab');
+            const highRiskAbilitiesTab = document.getElementById('highRiskAbilitiesTab');
+            const highRiskAbilitiesList = document.getElementById('highRiskAbilitiesList');
+            const tabs = document.querySelectorAll('.tab-button');
+            const enemyOnlyToggle = document.getElementById('enemy-only-toggle');
+            const highRiskFilterContainer = document.getElementById('high-risk-filter-container');
+            const globalHasteInput = document.getElementById('globalHasteInput'); 
+            
+            const detailsPanel = document.getElementById('detailsPanel');
+
+            const saveGameContainer = document.getElementById('saveGameContainer');
+            const gameNotesTextarea = document.getElementById('gameNotes');
+            const gameTitleInput = document.getElementById('gameTitleInput');
+            const saveGameBtn = document.getElementById('saveGameBtn');
+            const savedGamesListDiv = document.getElementById('savedGamesList');
+            const searchGameSetsInput = document.getElementById('searchGameSets');
+
+            const gameStatsContainer = document.getElementById('gameStatsContainer');
+            const gameAverageRankDiv = document.getElementById('gameAverageRank');
+            const allyTeamWinrateDiv = document.getElementById('allyTeamWinrate');
+            const enemyTeamWinrateDiv = document.getElementById('enemyTeamWinrate');
+            const chartStatSelector = document.getElementById('chartStatSelector');
+            const chartContainer = document.getElementById('chartContainer');
+            const teamCompositionAnalysisDiv = document.getElementById('teamCompositionAnalysis');
+
+            // --- INITIALIZATION ---
+            const init = () => {
+                loadStateFromLocalStorage();
+                fetchDDragonData().then(() => {
+                    getPublicWinrates(winrateRankSelector.value);
+                    updateUI();
+                    
+                    fetchLiveGameBtn.disabled = false;
+                    championSelect.disabled = false;
+                });
+                setupEventListeners();
+                renderSavedGameSets();
+                renderPresetScouts();
+            };
+
+            const applyTheme = (themeName) => {
+                document.body.className = 'transition-colors duration-300';
+                if (themeName !== 'light') {
+                    document.body.classList.add(`theme-${themeName}`);
+                }
+            };
+
+            const loadStateFromLocalStorage = () => {
+                const savedTheme = localStorage.getItem('theme') || 'bilgewater';
+                applyTheme(savedTheme);
+                themeSelector.value = savedTheme;
+
+                const defaultApiKey = 'RGAPI-0339b92e-ce0f-48b0-948c-af1b6b6c5224';
+                const savedApiKey = localStorage.getItem('riotApiKey');
+                if (savedApiKey) {
+                    apiKey = savedApiKey;
+                    apiKeyInput.value = apiKey;
+                    apiKeyStatus.textContent = 'API Key loaded from localStorage.';
+                    apiKeyStatus.className = 'text-sm mt-2 text-green-600';
+                } else {
+                    apiKey = defaultApiKey;
+                    apiKeyInput.value = apiKey;
+                    apiKeyStatus.textContent = 'Default API Key is automatically loaded.';
+                    apiKeyStatus.className = 'text-sm mt-2 text-green-600';
+                }
+                const savedRegion = localStorage.getItem('riotRegion');
+                if(savedRegion) regionSelector.value = savedRegion;
+
+                document.querySelectorAll('[data-collapsible]').forEach(header => {
+                    const sectionId = header.getAttribute('data-collapsible');
+                    const section = document.getElementById(sectionId);
+                    if (localStorage.getItem(sectionId) === 'open' || sectionId === 'championViewerSection') {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+                
+                const savedPrioritized = localStorage.getItem('prioritizedAbilities');
+                if (savedPrioritized) {
+                    prioritizedAbilities = JSON.parse(savedPrioritized);
+                }
+
+                const savedGames = localStorage.getItem('savedGameSets');
+                if (savedGames) {
+                    savedGameSets = JSON.parse(savedGames);
+                }
+
+                const savedPresets = localStorage.getItem('presetScouts');
+                if (savedPresets) {
+                    presetScouts = JSON.parse(savedPresets);
+                } else {
+                    presetScouts = ['dustinthewind#joeyc', 'dustbyte#joeyc'];
+                }
+            };
+
+            const fetchDDragonData = async () => {
+                try {
+                    const versionsResponse = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+                    const versions = await versionsResponse.json();
+                    latestVersion = versions[0];
+
+                    const championsResponse = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion.json`);
+                    const championsPayload = await championsResponse.json();
+                    championData = championsPayload.data;
+
+                    populateChampionSelect();
+                } catch (error) {
+                    console.error('Error fetching DDragon data:', error);
+                    championDetailsTab.innerHTML = `<p class="text-red-500">Could not load champion data. Please refresh.</p>`;
+                    championSelect.innerHTML = '<option value="">Error loading data!</option>';
+                }
+            };
+            
+            const setupEventListeners = () => {
+                themeSelector.addEventListener('change', () => {
+                    const selectedTheme = themeSelector.value;
+                    applyTheme(selectedTheme);
+                    localStorage.setItem('theme', selectedTheme);
+                });
+
+                saveApiKeyBtn.addEventListener('click', () => {
+                    apiKey = apiKeyInput.value.trim();
+                    if (apiKey) {
+                        localStorage.setItem('riotApiKey', apiKey);
+                        localStorage.setItem('riotRegion', regionSelector.value);
+                        apiKeyStatus.textContent = 'API Key and Region saved!';
+                        apiKeyStatus.className = 'text-sm mt-2 text-green-600';
+                    }
+                });
+
+                document.querySelectorAll('[data-collapsible]').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const sectionId = header.getAttribute('data-collapsible');
+                        const section = document.getElementById(sectionId);
+                        const isHidden = section.style.display === 'none';
+                        section.style.display = isHidden ? 'block' : 'none';
+                        localStorage.setItem(sectionId, isHidden ? 'open' : 'closed');
+                    });
+                });
+
+                championSelect.addEventListener('change', async () => {
+                    const championId = championSelect.value;
+                    if (championId) {
+                        await addChampionToPool(championId);
+                    }
+                });
+                
+                winrateRankSelector.addEventListener('change', () => {
+                    getPublicWinrates(winrateRankSelector.value);
+                    renderChampionPool();
+                });
+                
+                clearChampionPoolBtn.addEventListener('click', clearChampionViewerPool);
+
+                tabs.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const tabId = button.dataset.tab;
+                        tabs.forEach(btn => {
+                            btn.classList.remove('themed-border-accent', 'themed-text-accent');
+                            btn.classList.add('border-transparent', 'themed-text-muted', 'hover:themed-text-secondary');
+                        });
+                         button.classList.remove('border-transparent', 'themed-text-muted', 'hover:themed-text-secondary');
+                         button.classList.add('themed-border-accent', 'themed-text-accent');
+                        
+                        document.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.add('hidden');
+                        });
+                        document.getElementById(tabId).classList.remove('hidden');
+                    });
+                });
+
+                fetchLiveGameBtn.addEventListener('click', handleLiveGameScouting);
+                
+                addPresetBtn.addEventListener('click', () => {
+                    const newRiotId = newPresetInput.value.trim();
+                    if (newRiotId && newRiotId.includes('#')) {
+                        if (!presetScouts.includes(newRiotId)) {
+                            presetScouts.push(newRiotId);
+                            savePresetScouts();
+                            renderPresetScouts();
+                            newPresetInput.value = '';
+                        } else {
+                            alert('That Riot ID is already in the list.');
+                        }
+                    } else {
+                        alert('Please use the format name#tag.');
+                    }
+                });
+
+                generateScoutingReportBtn.addEventListener('click', () => handleManualScouting());
+                
+                enemyOnlyToggle.addEventListener('change', () => {
+                    showOnlyEnemies = enemyOnlyToggle.checked;
+                    renderHighRiskAbilities();
+                });
+
+                chartStatSelector.addEventListener('change', renderComparisonChart);
+                
+                searchGameSetsInput.addEventListener('input', () => renderSavedGameSets());
+
+                saveGameBtn.addEventListener('click', saveCurrentGame);
+
+                globalHasteInput.addEventListener('input', () => {
+                    globalHaste = parseInt(globalHasteInput.value, 10) || 0;
+                    if (globalHaste < 0) {
+                        globalHaste = 0;
+                        globalHasteInput.value = 0;
+                    }
+                    renderHighRiskAbilities();
+                    const currentChampId = championDetailsTab.dataset.currentChamp;
+                    if (currentChampId) {
+                        renderChampionDetails(championPool.get(currentChampId));
+                    }
+                });
+
+                new Sortable(highRiskAbilitiesList, {
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    delay: 200, 
+                    delayOnTouchOnly: true,
+                    onEnd: () => {
+                        const newPrioritizedIds = Array.from(highRiskAbilitiesList.querySelectorAll('li'))
+                                                       .map(li => li.dataset.abilityId);
+                        prioritizedAbilities = newPrioritizedIds
+                            .map(id => prioritizedAbilities.find(p => p && p.id === id))
+                            .filter(Boolean);
+                        savePrioritizedAbilities();
+                        renderHighRiskAbilities();
+                    }
+                });
+            };
+
+            // --- UI FUNCTIONS ---
+            const updateUI = () => {
+                renderChampionPool();
+                renderHighRiskAbilities();
+                renderComparisonChart();
+            };
+
+            const calculateHastedCooldown = (baseCooldown) => {
+                if (globalHaste === 0) return `${baseCooldown}s`;
+                const base = parseFloat(baseCooldown);
+                if (isNaN(base) || base === 0) return baseCooldown;
+                
+                const cdr = globalHaste / (100 + globalHaste);
+                const hastedCd = (base * (1 - cdr)).toFixed(1);
+                return `${hastedCd}s <span class="themed-text-muted">(${base}s)</span>`;
+            };
+
+            const savePresetScouts = () => {
+                localStorage.setItem('presetScouts', JSON.stringify(presetScouts));
+            };
+
+            const renderPresetScouts = () => {
+                presetScoutsContainer.innerHTML = '';
+                if (presetScouts.length === 0) {
+                    presetScoutsContainer.innerHTML = '<p class="text-xs themed-text-muted">No preset scouts. Add one below.</p>';
+                    return;
+                }
+                
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'grid grid-cols-2 gap-2';
+                
+                presetScouts.forEach(riotId => {
+                    const btn = document.createElement('button');
+                    btn.className = 'preset-scout-btn px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 text-sm relative truncate';
+                    btn.textContent = `Scout ${riotId.split('#')[0]}`;
+                    btn.title = `Scout ${riotId}`;
+                    btn.dataset.riotId = riotId;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-preset-btn absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs leading-none font-bold hover:bg-red-700';
+                    deleteBtn.innerHTML = '&times;';
+                    deleteBtn.title = `Remove ${riotId}`;
+                    deleteBtn.dataset.riotId = riotId;
+
+                    deleteBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const idToRemove = e.target.dataset.riotId;
+                        presetScouts = presetScouts.filter(id => id !== idToRemove);
+                        savePresetScouts();
+                        renderPresetScouts();
+                    });
+
+                    btn.addEventListener('click', () => {
+                        liveGameRiotIdInput.value = riotId;
+                        fetchLiveGameBtn.click();
+                    });
+
+                    btn.appendChild(deleteBtn);
+                    gridDiv.appendChild(btn);
+                });
+                presetScoutsContainer.appendChild(gridDiv);
+            };
+
+            const populateChampionSelect = () => {
+                championSelect.innerHTML = '<option value="">Select a champion...</option>';
+                const sortedChampions = Object.values(championData).sort((a, b) => a.name.localeCompare(b.name));
+                sortedChampions.forEach(champ => {
+                    const option = document.createElement('option');
+                    option.value = champ.id;
+                    option.textContent = champ.name;
+                    championSelect.appendChild(option);
+                });
+            };
+
+            const renderChampionPool = () => {
+                championPoolDiv.innerHTML = '';
+                if (championPool.size === 0) {
+                    championPoolDiv.innerHTML = '<p class="themed-text-muted">No champions in pool.</p>';
+                    return;
+                }
+                championPool.forEach((champ, champId) => {
+                    const div = document.createElement('div');
+                    div.className = 'champion-card flex items-center justify-between p-2 themed-bg-tertiary border themed-border rounded-md cursor-pointer';
+                    div.dataset.championId = champId;
+                    const winrate = fetchedPublicWinrates[champ.id] ? `${fetchedPublicWinrates[champ.id]}% WR` : 'N/A';
+                    
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <img src="https://ddragon.leagueoflegends.com/cdn/${latestVersion}/img/champion/${champ.image.full}" class="w-8 h-8 rounded-full">
+                            <div>
+                                <span class="block themed-text-primary">${champ.name}</span>
+                                <span class="text-xs themed-text-muted">${winrate}</span>
+                            </div>
+                        </div>
+                        <button class="remove-champ-btn text-red-500 hover:text-red-700" data-champ-id="${champId}">X</button>
+                    `;
+                    div.addEventListener('click', (e) => {
+                        if(e.target.classList.contains('remove-champ-btn')) return;
+                        selectChampion(champId);
+                    });
+                    div.querySelector('.remove-champ-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        removeChampionFromPool(champId);
+                    });
+                    championPoolDiv.appendChild(div);
+                });
+            };
+
+            const renderChampionDetails = (champ) => {
+                if (!champ || !champ.spells) {
+                    console.error("Invalid champion data passed to renderChampionDetails", champ);
+                    championDetailsTab.innerHTML = `<p class="text-red-500">Could not render details due to missing data.</p>`;
+                    return;
+                }
+                try {
+                    const getCCTypes = (tooltip) => {
+                        const cc = [];
+                        if (tooltip.toLowerCase().includes('stun')) cc.push('Stun');
+                        if (tooltip.toLowerCase().includes('root') || tooltip.toLowerCase().includes('snare')) cc.push('Root');
+                        if (tooltip.toLowerCase().includes('knock up') || tooltip.toLowerCase().includes('knockup')) cc.push('Knock Up');
+                        if (tooltip.toLowerCase().includes('suppress')) cc.push('Suppress');
+                        if (tooltip.toLowerCase().includes('charm')) cc.push('Charm');
+                        if (tooltip.toLowerCase().includes('fear')) cc.push('Fear');
+                        if (tooltip.toLowerCase().includes('taunt')) cc.push('Taunt');
+                        if (tooltip.toLowerCase().includes('slow')) cc.push('Slow');
+                        return cc.length > 0 ? `<span class="text-xs font-semibold text-red-500 ml-2">CC: ${[...new Set(cc)].join(', ')}</span>` : '';
+                    };
+                    
+                    const matchups = matchupData[champ.id] || { good: [], bad: [] };
+
+                    championDetailsTab.innerHTML = '';
+
+                    const container = document.createElement('div');
+                    container.innerHTML = `
+                        <img src="https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${champ.id}_0.jpg" class="w-full rounded-lg object-cover mb-4">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-2xl font-bold themed-text-primary">${champ.name}, ${champ.title}</h3>
+                                <button id="lolalyticsLinkBtn" class="px-3 py-1 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 whitespace-nowrap">View on Lolalytics</button>
+                            </div>
+                            <p class="text-sm font-mono themed-text-muted mt-1">AA Range: ${champ.stats.attackrange}</p>
+                            <p class="italic my-2 themed-text-secondary">${champ.lore}</p>
+                             <div class="grid grid-cols-2 gap-4 my-4">
+                                <div>
+                                    <h4 class="font-semibold themed-text-primary">Good Against</h4>
+                                    <div class="flex flex-wrap gap-2 mt-2">
+                                        ${matchups.good.map(m => `<span class="text-xs themed-bg-tertiary themed-text-secondary px-2 py-1 rounded-full">${m}</span>`).join('') || '<span class="text-xs themed-text-muted">N/A</span>'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold themed-text-primary">Weak Against</h4>
+                                     <div class="flex flex-wrap gap-2 mt-2">
+                                        ${matchups.bad.map(m => `<span class="text-xs themed-bg-tertiary themed-text-secondary px-2 py-1 rounded-full">${m}</span>`).join('') || '<span class="text-xs themed-text-muted">N/A</span>'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <h4 class="font-semibold text-lg mb-2 themed-text-primary">Abilities</h4>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const lolalyticsBtn = container.querySelector('#lolalyticsLinkBtn');
+                    if (lolalyticsBtn) {
+                        const lolalyticsUrl = `https://lolalytics.com/lol/${champ.id.toLowerCase()}/build/`;
+                        lolalyticsBtn.addEventListener('click', () => {
+                            window.open(lolalyticsUrl, '_blank');
+                        });
+                    }
+
+                    const abilitiesContainer = container.querySelector('.mt-4');
+
+                    const passive = champ.passive;
+                    const passiveDiv = document.createElement('div');
+                    passiveDiv.className = 'flex items-start gap-3 mb-3';
+                    
+                    const passiveImg = document.createElement('img');
+                    passiveImg.src = `https://ddragon.leagueoflegends.com/cdn/${latestVersion}/img/passive/${passive.image.full}`;
+                    passiveImg.className = 'w-12 h-12 rounded-md';
+                    
+                    const passiveDetailsWrapper = document.createElement('div');
+                    
+                    const passiveTitleH4 = document.createElement('h4');
+                    passiveTitleH4.className = 'font-bold flex items-center themed-text-primary';
+                    passiveTitleH4.innerHTML = `${passive.name} <span class="text-sm themed-text-muted font-medium ml-2">(Passive)</span>`;
+                    
+                    const passiveDescriptionP = document.createElement('p');
+                    passiveDescriptionP.className = 'text-sm themed-text-secondary mt-1';
+                    passiveDescriptionP.innerHTML = passive.description;
+
+                    passiveDetailsWrapper.appendChild(passiveTitleH4);
+                    passiveDetailsWrapper.appendChild(passiveDescriptionP);
+                    
+                    passiveDiv.appendChild(passiveImg);
+                    passiveDiv.appendChild(passiveDetailsWrapper);
+                    abilitiesContainer.appendChild(passiveDiv);
+
+                    champ.spells.forEach(spell => {
+                        const abilityId = `${champ.id}-${spell.id}`;
+                        const isCC = /stun|root|snare|knock up|knockup|suppress|charm|fear|taunt/i.test(spell.tooltip);
+                        const isUltimate = spell.id.toLowerCase().includes('ultimate');
+                        const isManuallyPrioritized = prioritizedAbilities.some(p => p && p.id === abilityId);
+                        const isStarred = isManuallyPrioritized || isCC || isUltimate;
+                        const abilityInfo = { id: abilityId, champName: champ.name, spellName: spell.name };
+                        const abilityDiv = document.createElement('div');
+                        abilityDiv.className = 'flex items-start gap-3 mb-3';
+                        const spellImg = document.createElement('img');
+                        spellImg.src = `https://ddragon.leagueoflegends.com/cdn/${latestVersion}/img/spell/${spell.image.full}`;
+                        spellImg.className = 'w-12 h-12 rounded-md';
+                        const detailsWrapper = document.createElement('div');
+                        const titleH4 = document.createElement('h4');
+                        titleH4.className = 'font-bold flex items-center themed-text-primary';
+                        const titleText = document.createElement('span');
+                        titleText.innerHTML = `${spell.name} ${getCCTypes(spell.tooltip)}`;
+                        titleH4.appendChild(titleText);
+                        const toggleButton = document.createElement('button');
+                        toggleButton.className = 'details-priority-toggle text-xl ml-2';
+                        toggleButton.textContent = isStarred ? '⭐' : '☆';
+                        toggleButton.addEventListener('click', () => toggleAbilityPriority(abilityInfo));
+                        titleH4.appendChild(toggleButton);
+                        const statsDiv = document.createElement('div');
+                        statsDiv.className = 'text-xs themed-text-muted mb-1 font-mono';
+                        
+                        const hastedCooldowns = spell.cooldownBurn.split('/').map(calculateHastedCooldown).join('/');
+                        statsDiv.innerHTML = `<span>Range: ${spell.rangeBurn === 'self' ? 'Self' : spell.rangeBurn}</span> | <span>Cooldown: ${hastedCooldowns}</span>`;
+                        
+                        const descriptionP = document.createElement('p');
+                        descriptionP.className = 'text-sm themed-text-secondary';
+                        descriptionP.innerHTML = spell.description;
+                        detailsWrapper.appendChild(titleH4);
+                        detailsWrapper.appendChild(statsDiv);
+                        detailsWrapper.appendChild(descriptionP);
+                        abilityDiv.appendChild(spellImg);
+                        abilityDiv.appendChild(detailsWrapper);
+                        abilitiesContainer.appendChild(abilityDiv);
+                    });
+                    championDetailsTab.appendChild(container);
+                } catch (error) {
+                    console.error('Error rendering champion details:', error);
+                    championDetailsTab.innerHTML = `<p class="text-red-500">Could not load details for ${champ.id}.</p>`;
+                }
+            };
+            
+            const renderHighRiskAbilities = () => {
+                const allAbilitiesMap = new Map();
+                prioritizedAbilities.forEach(prioAbility => {
+                    if (!prioAbility) return;
+                    const [champId, spellId] = prioAbility.id.split('-');
+                    const champ = championPool.get(champId);
+                    if (champ && champ.spells) {
+                        const spell = champ.spells.find(s => s.id === spellId);
+                        if (spell) {
+                            allAbilitiesMap.set(prioAbility.id, {
+                                id: prioAbility.id, champId: champ.id, champName: champ.name,
+                                champAARange: champ.stats.attackrange, spellName: spell.name,
+                                spellImg: `https://ddragon.leagueoflegends.com/cdn/${latestVersion}/img/spell/${spell.image.full}`,
+                                spellRange: spell.rangeBurn, spellCooldown: spell.cooldownBurn,
+                                isUltimate: spell.id.toLowerCase().includes('ultimate'), isPrioritized: true
+                            });
+                        }
+                    }
+                });
+                championPool.forEach(champ => {
+                    if (champ && champ.spells) {
+                        champ.spells.forEach(spell => {
+                            const abilityId = `${champ.id}-${spell.id}`;
+                            if (allAbilitiesMap.has(abilityId)) return;
+                            const isCC = /stun|root|snare|knock up|knockup|suppress|charm|fear|taunt/i.test(spell.tooltip);
+                            if (isCC || spell.id.toLowerCase().includes('ultimate')) {
+                                allAbilitiesMap.set(abilityId, {
+                                    id: abilityId, champId: champ.id, champName: champ.name,
+                                    champAARange: champ.stats.attackrange, spellName: spell.name,
+                                    spellImg: `https://ddragon.leagueoflegends.com/cdn/${latestVersion}/img/spell/${spell.image.full}`,
+                                    spellRange: spell.rangeBurn, spellCooldown: spell.cooldownBurn,
+                                    isUltimate: spell.id.toLowerCase().includes('ultimate'), isPrioritized: false
+                                });
+                            }
+                        });
+                    }
+                });
+                let allAbilities = Array.from(allAbilitiesMap.values());
+                if (showOnlyEnemies && enemyChampionIds.size > 0) {
+                    allAbilities = allAbilities.filter(ability => enemyChampionIds.has(ability.champId));
+                }
+                allAbilities.sort((a, b) => {
+                    const aPrioIndex = prioritizedAbilities.findIndex(p => p && p.id === a.id);
+                    const bPrioIndex = prioritizedAbilities.findIndex(p => p && p.id === b.id);
+                    if (aPrioIndex > -1 && bPrioIndex > -1) return aPrioIndex - bPrioIndex;
+                    if (aPrioIndex > -1) return -1;
+                    if (bPrioIndex > -1) return 1;
+                    if (a.isUltimate !== b.isUltimate) return b.isUltimate - a.isUltimate;
+                    return a.champName.localeCompare(b.champName);
+                });
+                highRiskAbilitiesList.innerHTML = '';
+                if (allAbilities.length === 0) {
+                    highRiskAbilitiesList.innerHTML = `<li class="themed-text-muted">${showOnlyEnemies ? 'No high-risk abilities for enemies.' : 'No high-risk abilities in pool.'}</li>`;
+                    return;
+                }
+                allAbilities.forEach(ability => {
+                    const li = document.createElement('li');
+                    li.className = 'ability-tile flex items-center justify-between p-2 border themed-border rounded-md cursor-grab';
+                    li.dataset.abilityId = ability.id;
+                    const champ = championPool.get(ability.champId);
+                    const spell = champ ? champ.spells.find(s => s.id === ability.id.split('-')[1]) : null;
+                    const isCC = spell && /stun|root|snare|knock up|knockup|suppress|charm|fear|taunt/i.test(spell.tooltip);
+                    const isStarred = ability.isPrioritized || isCC || ability.isUltimate;
+                    
+                    const hastedCooldowns = ability.spellCooldown.split('/').map(calculateHastedCooldown).join('/');
+                    
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <img src="${ability.spellImg}" class="w-10 h-10 rounded-md">
+                            <div>
+                                <p class="font-semibold themed-text-primary">${ability.champName} - ${ability.spellName}</p>
+                                <p class="text-sm themed-text-muted">${ability.isUltimate ? 'Ultimate' : (isCC ? 'Crowd Control' : 'Important')}</p>
+                                <div class="text-xs font-mono themed-text-secondary mt-1">
+                                    <span>AA: ${ability.champAARange}</span> |
+                                    <span>Range: ${ability.spellRange}</span> |
+                                    <span>CD: ${hastedCooldowns}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="priority-toggle text-2xl" data-ability-id="${ability.id}">${isStarred ? '⭐' : '☆'}</button>
+                    `;
+                    li.querySelector('.priority-toggle').addEventListener('click', () => toggleAbilityPriority(ability));
+                    highRiskAbilitiesList.appendChild(li);
+                });
+            };
+
+            const renderSavedGameSets = () => {
+                savedGamesListDiv.innerHTML = '';
+                if (savedGameSets.length === 0) {
+                    savedGamesListDiv.innerHTML = '<p class="themed-text-muted">You have no saved games.</p>';
+                    return;
+                }
+
+                savedGameSets.forEach(gameSet => {
+                    const gameDiv = document.createElement('div');
+                    gameDiv.className = 'saved-game-card p-4 border themed-border rounded-lg shadow-sm themed-bg-tertiary';
+                    
+                    const isEditing = editingGameId === gameSet.id;
+
+                    if (isEditing) {
+                        // Edit Mode
+                        gameDiv.innerHTML = `
+                            <div class="flex flex-col gap-2">
+                                <input type="text" class="w-full p-2 rounded-md border border-blue-400" id="edit-title-${gameSet.id}" value="${gameSet.title || `Game vs ${gameSet.scoutedPlayer}`}">
+                                <p class="text-xs themed-text-muted">${gameSet.timestamp}</p>
+                                <textarea class="w-full p-2 rounded-md border border-blue-400" id="edit-notes-${gameSet.id}" rows="3">${gameSet.notes || ''}</textarea>
+                                <div class="flex gap-2 mt-2">
+                                    <button class="save-edit-btn px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm w-full" data-game-id="${gameSet.id}">Save</button>
+                                    <button class="cancel-edit-btn px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm w-full" data-game-id="${gameSet.id}">Cancel</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // View Mode
+                        gameDiv.innerHTML = `
+                            <div>
+                                <div class="flex justify-between items-start">
+                                    <h4 class="font-bold themed-text-primary text-lg">${gameSet.title || `Game vs ${gameSet.scoutedPlayer}`}</h4>
+                                    <span class="text-xs themed-text-muted whitespace-nowrap ml-2">${gameSet.timestamp}</span>
+                                </div>
+                                <p class="text-sm text-blue-500 mb-1">Scouted: ${gameSet.scoutedPlayer}</p>
+                                <p class="mt-2 text-sm themed-text-secondary italic border-l-2 border-gray-300 pl-2">${gameSet.notes || 'No notes.'}</p>
+                                <div class="flex gap-2 mt-3 border-t themed-border pt-2">
+                                    <button class="load-game-btn flex-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm font-medium" data-game-id="${gameSet.id}">Load</button>
+                                    <button class="edit-game-btn flex-1 px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium" data-game-id="${gameSet.id}">Edit</button>
+                                    <button class="delete-game-btn flex-1 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm font-medium" data-game-id="${gameSet.id}">Delete</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    savedGamesListDiv.appendChild(gameDiv);
+                });
+
+                // Attach listeners
+                document.querySelectorAll('.load-game-btn').forEach(btn => btn.addEventListener('click', (e) => loadSavedGame(e.target.dataset.gameId)));
+                document.querySelectorAll('.delete-game-btn').forEach(btn => btn.addEventListener('click', (e) => deleteSavedGame(e.target.dataset.gameId)));
+                
+                document.querySelectorAll('.edit-game-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                    editingGameId = e.target.dataset.gameId;
+                    renderSavedGameSets();
+                }));
+
+                document.querySelectorAll('.cancel-edit-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                    editingGameId = null;
+                    renderSavedGameSets();
+                }));
+
+                document.querySelectorAll('.save-edit-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                    const id = e.target.dataset.gameId;
+                    const newTitle = document.getElementById(`edit-title-${id}`).value;
+                    const newNotes = document.getElementById(`edit-notes-${id}`).value;
+                    updateSavedGame(id, newTitle, newNotes);
+                }));
+            };
+
+            const renderComparisonChart = () => {
+                chartContainer.innerHTML = '';
+                const selectedStat = chartStatSelector.value;
+
+                if (championPool.size === 0) {
+                    chartContainer.innerHTML = '<p class="themed-text-muted">Add champions to the pool to compare stats.</p>';
+                    return;
+                }
+
+                let stats = [];
+                let maxValue = 0;
+
+                championPool.forEach(champ => {
+                    let value;
+                     if (selectedStat.startsWith('ultcooldown')) {
+                        const rankIndex = parseInt(selectedStat.split('-')[1]) - 1;
+                        const cooldowns = champ.spells[3] ? champ.spells[3].cooldownBurn.split('/') : ['0'];
+                        value = parseFloat(cooldowns[rankIndex] || cooldowns[0]);
+                    } else if (selectedStat === 'winrate') {
+                        value = parseFloat(fetchedPublicWinrates[champ.id]) || 0;
+                    } else {
+                        value = champ.stats[selectedStat];
+                    }
+
+                    if (value > maxValue) {
+                        maxValue = value;
+                    }
+                    stats.push({ name: champ.name, value: value, id: champ.id });
+                });
+
+                stats.sort((a, b) => b.value - a.value);
+
+                stats.forEach(stat => {
+                    const barWidth = maxValue > 0 ? (stat.value / maxValue) * 100 : 0;
+                    const bar = document.createElement('div');
+                    bar.className = 'flex items-center gap-4 cursor-pointer';
+                    bar.dataset.championId = stat.id;
+                    bar.innerHTML = `
+                        <div class="w-1/4 text-sm font-medium themed-text-secondary text-right truncate">${stat.name}</div>
+                        <div class="w-3/4 flex items-center">
+                            <div class="h-6 themed-bg-accent rounded-r-md" style="width: ${barWidth}%"></div>
+                            <span class="ml-2 text-sm font-semibold themed-text-primary">${stat.value}${selectedStat === 'winrate' ? '%' : ''}</span>
+                        </div>
+                    `;
+                    bar.addEventListener('click', () => selectChampion(stat.id));
+                    chartContainer.appendChild(bar);
+                });
+            };
+
+            // --- LOGIC & HANDLERS ---
+            const updateSavedGame = (id, newTitle, newNotes) => {
+                const gameIndex = savedGameSets.findIndex(g => g.id === id);
+                if (gameIndex > -1) {
+                    savedGameSets[gameIndex].title = newTitle;
+                    savedGameSets[gameIndex].notes = newNotes;
+                    localStorage.setItem('savedGameSets', JSON.stringify(savedGameSets));
+                    editingGameId = null;
+                    renderSavedGameSets();
+                }
+            };
+
+            const addChampionToPool = async (championId) => {
+                if (championPool.has(championId)) {
+                    selectChampion(championId);
+                    return;
+                }
+                if (championData[championId]) {
+                    try {
+                        const champResponse = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion/${championId}.json`);
+                        if (!champResponse.ok) throw new Error(`Failed to fetch data for ${championId}`);
+                        const champPayload = await champResponse.json();
+                        const detailedChampData = champPayload.data[championId];
+                        championPool.set(championId, detailedChampData);
+                        updateUI();
+                        selectChampion(championId);
+                    } catch (error) {
+                        console.error(`Error in addChampionToPool for ${championId}:`, error);
+                        alert(`Failed to load detailed data for ${championId}. Please try again.`);
+                    }
+                }
+            };
+            
+            const removeChampionFromPool = (championId) => {
+                championPool.delete(championId);
+                if (championDetailsTab.dataset.currentChamp === championId) {
+                    championDetailsTab.innerHTML = 'Select a champion from the pool to see details.';
+                    delete championDetailsTab.dataset.currentChamp;
+                }
+                updateUI();
+            };
+
+            const clearChampionViewerPool = () => {
+                championPool.clear();
+                enemyChampionIds.clear();
+                liveGameChampionMap.clear();
+                highRiskFilterContainer.style.display = 'none';
+                enemyOnlyToggle.checked = false;
+                showOnlyEnemies = false;
+                championDetailsTab.innerHTML = 'Select a champion from the pool to see details.';
+                delete championDetailsTab.dataset.currentChamp;
+                saveGameContainer.style.display = 'none';
+                gameStatsContainer.style.display = 'none';
+                gameNotesTextarea.value = '';
+                gameTitleInput.value = '';
+                currentGameData = null;
+                updateUI();
+            };
+
+            const selectChampion = (championId) => {
+                document.querySelectorAll('.champion-card').forEach(card => {
+                    card.classList.toggle('selected', card.dataset.championId === championId);
+                });
+                const champ = championPool.get(championId);
+                if (champ) {
+                    renderChampionDetails(champ);
+                    championDetailsTab.dataset.currentChamp = championId;
+                    document.querySelector('.tab-button[data-tab="championDetailsTab"]').click();
+                    
+                    if (window.innerWidth < 768 && detailsPanel) {
+                        detailsPanel.scrollIntoView({ behavior: 'smooth' });
+                    }
+                } else {
+                    console.error(`Champion ${championId} not found in pool for selection.`);
+                }
+            };
+            
+            const toggleAbilityPriority = (ability) => {
+                const index = prioritizedAbilities.findIndex(p => p && p.id === ability.id);
+                if (index > -1) {
+                    prioritizedAbilities.splice(index, 1);
+                } else {
+                    prioritizedAbilities.push({ id: ability.id, champName: ability.champName, spellName: ability.spellName });
+                }
+                savePrioritizedAbilities();
+                renderHighRiskAbilities();
+                const currentChampId = championDetailsTab.dataset.currentChamp;
+                if (currentChampId && ability.id.startsWith(currentChampId)) {
+                    renderChampionDetails(championPool.get(currentChampId));
+                }
+            };
+            
+            const savePrioritizedAbilities = () => {
+                localStorage.setItem('prioritizedAbilities', JSON.stringify(prioritizedAbilities));
+            };
+
+            const getPublicWinrates = (tier) => {
+                fetchedPublicWinrates = {};
+                 const tierData = publicWinrateData[tier.toLowerCase()];
+                if (tierData) {
+                    fetchedPublicWinrates = tierData;
+                    console.log(`Loaded built-in winrates for ${tier} tier.`);
+                } else {
+                    console.log(`No built-in winrate data for ${tier} tier. Using Emerald as fallback.`);
+                    fetchedPublicWinrates = publicWinrateData['emerald'];
+                }
+            };
+            
+            const handleLiveGameScouting = async () => {
+                liveGameStatus.textContent = '';
+                liveGameStatus.className = 'text-sm mt-2 text-center themed-text-muted';
+
+                const riotId = liveGameRiotIdInput.value.trim();
+                if (!riotId || !riotId.includes('#')) {
+                    liveGameStatus.textContent = 'Please enter a valid Riot ID (e.g., name#tag).';
+                    liveGameStatus.className = 'text-sm mt-2 text-center text-red-500';
+                    return;
+                }
+                if (!apiKey) {
+                    liveGameStatus.textContent = 'Please set your API key first.';
+                    liveGameStatus.className = 'text-sm mt-2 text-center text-red-500';
+                    return;
+                }
+                clearChampionViewerPool();
+                opponentRiotIdsTextarea.value = '';
+                scoutingReportResults.innerHTML = '';
+                gameAverageRankDiv.innerHTML = 'Calculating game rank...';
+                allyTeamWinrateDiv.innerHTML = 'Calculating ally winrate...';
+                enemyTeamWinrateDiv.innerHTML = 'Calculating enemy winrate...';
+                gameStatsContainer.style.display = 'block';
+                liveGameStatus.textContent = 'Fetching live game...';
+
+                try {
+                    const [gameName, tagLine] = riotId.split('#');
+                    const routingValue = regionSelector.value;
+                    const platformId = regionSelector.options[regionSelector.selectedIndex].dataset.platform;
+                    const puuid = await getPuuidByRiotId(gameName, tagLine, routingValue);
+                    if (!puuid) throw new Error("Could not find summoner.");
+
+                    const spectatorUrl = `https://${platformId}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/${puuid}`;
+                    const spectatorResponse = await fetch(spectatorUrl, { headers: { 'X-Riot-Token': apiKey } });
+                    if (!spectatorResponse.ok) {
+                        if (spectatorResponse.status === 404) throw new Error("Summoner is not in an active game.");
+                        throw new Error(`API Error: ${spectatorResponse.statusText}`);
+                    }
+                    const liveGame = await spectatorResponse.json();
+                    
+                    liveGameStatus.textContent = 'Game found! Analyzing players...';
+                    
+                    await calculateAndDisplayGameStats(liveGame, puuid, platformId);
+                    getPublicWinrates(gameAverageRank.tierName);
+                    
+                    const userTeamId = liveGame.participants.find(p => p.puuid === puuid).teamId;
+                    
+                    currentGameData = {
+                        scoutedPlayer: riotId,
+                        teams: { allies: [], enemies: [] }
+                    };
+
+                    const addChampionPromises = [];
+                    const allPlayerRiotIds = [];
+
+                    for (const player of liveGame.participants) {
+                        const champ = Object.values(championData).find(c => c.key == player.championId);
+                        if (champ) {
+                            liveGameChampionMap.set(player.puuid, champ.name);
+                            addChampionPromises.push(addChampionToPool(champ.id));
+                            if (player.teamId !== userTeamId) {
+                                enemyChampionIds.add(champ.id);
+                                currentGameData.teams.enemies.push(champ.id);
+                            } else {
+                                currentGameData.teams.allies.push(champ.id);
+                            }
+                        }
+                        const playerRiotId = await getRiotIdByPuuid(player.puuid, routingValue);
+                        if(playerRiotId) allPlayerRiotIds.push(`${playerRiotId.gameName}#${playerRiotId.tagLine}`);
+                    }
+                    
+                    await Promise.all(addChampionPromises);
+
+                    opponentRiotIdsTextarea.value = allPlayerRiotIds.join('\n');
+                    highRiskFilterContainer.style.display = 'flex';
+                    saveGameContainer.style.display = 'block';
+                    document.querySelector('.tab-button[data-tab="highRiskAbilitiesTab"]').click();
+                    
+                    if (allPlayerRiotIds.length > 0) {
+                       await handleManualScouting(allPlayerRiotIds);
+                    } else {
+                        scoutingLoader.style.display = 'none';
+                        scoutingReportResults.innerHTML = '<p class="themed-text-muted">Could not resolve player Riot IDs to generate reports.</p>';
+                    }
+                    
+                    liveGameStatus.textContent = `Successfully loaded ${liveGame.participants.length} players.`;
+                    liveGameStatus.className = 'text-sm mt-2 text-center text-green-600';
+
+                } catch (error) {
+                    liveGameStatus.textContent = `Error: ${error.message}`;
+                    liveGameStatus.className = 'text-sm mt-2 text-center text-red-500';
+                    gameStatsContainer.style.display = 'none';
+                    console.error(error);
+                }
+            };
+            
+            const calculateAndDisplayGameStats = async (liveGame, userPuuid, platformId) => {
+                const allPlayers = liveGame.participants;
+                const rankPromises = allPlayers.map(player => getRankedInfo(player.puuid, platformId));
+                const ranks = await Promise.all(rankPromises);
+                
+                const userTeamId = liveGame.participants.find(p => p.puuid === userPuuid).teamId;
+
+                let totalRankValue = 0;
+                let rankedPlayerCount = 0;
+                let allyWins = 0, allyGames = 0, enemyWins = 0, enemyGames = 0;
+                
+                ranks.forEach((rank, index) => {
+                    if (rank && rank.value !== undefined) {
+                        totalRankValue += rank.value;
+                        rankedPlayerCount++;
+                    }
+                    const player = allPlayers[index];
+                    if(player.teamId === userTeamId) {
+                        allyWins += rank.wins;
+                        allyGames += (rank.wins + rank.losses);
+                    } else {
+                        enemyWins += rank.wins;
+                        enemyGames += (rank.wins + rank.losses);
+                    }
+                });
+
+                const avgRankValue = rankedPlayerCount > 0 ? Math.round(totalRankValue / rankedPlayerCount) : -1;
+                gameAverageRank.text = avgRankValue >= 0 ? valueToRank[avgRankValue] : 'Unranked';
+                gameAverageRank.tierName = avgRankValue >= 0 ? valueToRank[avgRankValue].split(' ')[0] : 'UNRANKED';
+                gameAverageRankDiv.innerHTML = `<strong>Game Avg. Rank:</strong> ${gameAverageRank.text}`;
+                
+                const allyAvgWinrate = allyGames > 0 ? ((allyWins / allyGames) * 100).toFixed(1) : 'N/A';
+                const enemyAvgWinrate = enemyGames > 0 ? ((enemyWins / enemyGames) * 100).toFixed(1) : 'N/A';
+
+                allyTeamWinrateDiv.innerHTML = `<strong>Ally Team:</strong> ${allyAvgWinrate}% Avg WR`;
+                enemyTeamWinrateDiv.innerHTML = `<strong>Enemy Team:</strong> ${enemyAvgWinrate}% Avg WR`;
+            };
+
+            const handleManualScouting = async (riotIdsOverride = null) => {
+                let riotIds = riotIdsOverride;
+                if (!riotIds) {
+                    riotIds = opponentRiotIdsTextarea.value.trim().split('\n').filter(id => id);
+                }
+                
+                if (riotIds.length === 0) {
+                    if (!riotIdsOverride) { 
+                        alert('Please enter at least one opponent Riot ID.');
+                    }
+                    return;
+                }
+                
+                if (!apiKey) {
+                    alert('Please set your API key first.');
+                    return;
+                }
+
+                scoutingLoader.style.display = 'block';
+                scoutingReportResults.innerHTML = '';
+                const numGames = gamesToAnalyzeSelect.value;
+                const routingValue = regionSelector.value;
+                const platformId = regionSelector.options[regionSelector.selectedIndex].dataset.platform;
+                
+                for (const riotId of riotIds) {
+                    await new Promise(resolve => setTimeout(resolve, 100)); 
+                    const playerCard = document.createElement('div');
+                    playerCard.className = 'scouting-card p-4 border themed-border rounded-lg mb-4';
+                    playerCard.innerHTML = `<h3 class="font-bold text-lg themed-text-primary">${riotId}</h3><p class="themed-text-secondary">Loading data...</p>`;
+                    scoutingReportResults.appendChild(playerCard);
+                    try {
+                        const [gameName, tagLine] = riotId.split('#');
+                        const puuid = await getPuuidByRiotId(gameName, tagLine, routingValue);
+                        if (!puuid) throw new Error("Summoner not found.");
+                        const rankInfo = await getRankedInfo(puuid, platformId);
+                        const matchList = await getMatchList(puuid, routingValue, numGames);
+                        let matchAnalysis = {
+                            totalKills: 0, totalDeaths: 0, totalAssists: 0, wins: 0,
+                            championStats: {}
+                        };
+
+                        const chunkSize = 5;
+                        for (let i = 0; i < matchList.length; i += chunkSize) {
+                            const chunk = matchList.slice(i, i + chunkSize);
+                            const chunkPromises = chunk.map(matchId => getMatchDetails(matchId, routingValue));
+                            
+                            const matchDetails = await Promise.all(chunkPromises);
+                            
+                            for (const match of matchDetails) {
+                                const participant = match.info.participants.find(p => p.puuid === puuid);
+                                if (!participant) continue;
+                                matchAnalysis.totalKills += participant.kills;
+                                matchAnalysis.totalDeaths += participant.deaths;
+                                matchAnalysis.totalAssists += participant.assists;
+                                if (participant.win) matchAnalysis.wins++;
+                                const champName = participant.championName;
+                                if (!matchAnalysis.championStats[champName]) {
+                                    matchAnalysis.championStats[champName] = { plays: 0, wins: 0, kills: 0, deaths: 0, assists: 0 };
+                                }
+                                const stats = matchAnalysis.championStats[champName];
+                                stats.plays++;
+                                if (participant.win) stats.wins++;
+                                stats.kills += participant.kills;
+                                stats.deaths += participant.deaths;
+                                stats.assists += participant.assists;
+                            }
+                            if (i + chunkSize < matchList.length) await new Promise(r => setTimeout(r, 200));
+                        }
+                        
+                        const liveChampionName = liveGameChampionMap.get(puuid);
+                        const liveChampionStats = liveChampionName ? matchAnalysis.championStats[liveChampionName] : null;
+
+                        playerCard.innerHTML = renderPlayerCard(riotId, rankInfo, matchAnalysis, matchList.length, liveChampionStats, liveChampionName);
+                    } catch (error) {
+                        playerCard.innerHTML = `<h3 class="font-bold text-lg">${riotId}</h3><p class="text-red-500">Error: ${error.message}</p>`;
+                        console.error(`Error scouting ${riotId}:`, error);
+                    }
+                }
+                scoutingLoader.style.display = 'none';
+            };
+            
+            const renderPlayerCard = (riotId, rankInfo, analysis, gamesAnalyzed, liveChampionStats, liveChampionName) => {
+                const { totalKills, totalDeaths, totalAssists, wins } = analysis;
+                const losses = gamesAnalyzed - wins;
+                const overallKda = totalDeaths === 0 ? 'Perfect' : ((totalKills + totalAssists) / totalDeaths).toFixed(2);
+                
+                let championWinrateHtml = '';
+                if(liveChampionStats && liveChampionName) {
+                    const champWinrate = liveChampionStats.plays > 0 ? Math.round(liveChampionStats.wins / liveChampionStats.plays * 100) : 0;
+                    let publicWinrateText = '';
+                    if (fetchedPublicWinrates && fetchedPublicWinrates[liveChampionName]) {
+                        publicWinrateText = ` | <span class="themed-text-muted">Avg ${gameAverageRank.text} WR: ${fetchedPublicWinrates[liveChampionName]}%</span>`;
+                    }
+                    championWinrateHtml = `<p class="text-sm font-semibold themed-text-accent">Current Champ (${liveChampionName}): ${champWinrate}% WR (${liveChampionStats.wins}W/${liveChampionStats.plays - liveChampionStats.wins}L)${publicWinrateText}</p>`;
+                }
+
+                const sortedChamps = Object.entries(analysis.championStats).sort(([,a], [,b]) => b.plays - a.plays);
+                let champsHtml = sortedChamps.slice(0, 5).map(([name, stats]) => { // Show top 5
+                    const champKda = stats.deaths === 0 ? 'Perfect' : ((stats.kills + stats.assists) / stats.deaths).toFixed(2);
+                    return `
+                        <div class="flex items-center justify-between text-sm mt-1 themed-text-secondary">
+                            <span><strong>${name}</strong> (${stats.plays} games)</span>
+                            <span>${stats.wins}W ${stats.plays - stats.wins}L (${stats.plays > 0 ? Math.round(stats.wins/stats.plays * 100) : 0}%)</span>
+                            <span>KDA: ${champKda}</span>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <h3 class="font-bold text-lg themed-text-primary">${riotId}</h3>
+                    <p class="text-sm themed-text-secondary">${rankInfo.text}</p>
+                    ${championWinrateHtml}
+                    <div class="my-2 themed-text-secondary">
+                        <p><strong>Overall (${gamesAnalyzed} games):</strong> ${wins}W ${losses}L (${gamesAnalyzed > 0 ? Math.round(wins/gamesAnalyzed * 100) : 0}%)</p>
+                        <p><strong>Avg KDA:</strong> ${overallKda} (${gamesAnalyzed > 0 ? (totalKills/gamesAnalyzed).toFixed(1) : 0}/${gamesAnalyzed > 0 ? (totalDeaths/gamesAnalyzed).toFixed(1) : 0}/${gamesAnalyzed > 0 ? (totalAssists/gamesAnalyzed).toFixed(1) : 0})</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold themed-text-primary">Most Played Champions:</h4>
+                        ${champsHtml || '<p class="text-sm themed-text-muted">No recent ranked games found.</p>'}
+                    </div>
+                `;
+            };
+
+            const saveCurrentGame = () => {
+                // MODIFIED: Logic to allow saving manual pools
+                let gameDataToSave = currentGameData;
+
+                // If no live game was fetched, create a synthetic game object from the current pool
+                if (!gameDataToSave) {
+                    const allChamps = Array.from(championPool.keys());
+                    if (allChamps.length === 0) {
+                        alert("No champions in the pool to save.");
+                        return;
+                    }
+                    gameDataToSave = {
+                        scoutedPlayer: "Manual Pool",
+                        teams: {
+                            allies: allChamps, // Save all as allies for manual pools
+                            enemies: []
+                        }
+                    };
+                }
+                
+                const newGameSet = {
+                    ...gameDataToSave,
+                    id: Date.now().toString(),
+                    timestamp: new Date().toLocaleString(),
+                    notes: gameNotesTextarea.value.trim(),
+                    title: gameTitleInput.value.trim() || (gameDataToSave.scoutedPlayer === "Manual Pool" ? "Custom Pool" : ""),
+                    globalHaste: globalHaste // Save haste
+                };
+                
+                savedGameSets.unshift(newGameSet);
+                localStorage.setItem('savedGameSets', JSON.stringify(savedGameSets));
+                renderSavedGameSets();
+                gameTitleInput.value = '';
+                gameNotesTextarea.value = '';
+                alert("Game set saved!");
+            };
+
+            const loadSavedGame = async (gameId) => {
+                const gameSet = savedGameSets.find(g => g.id === gameId);
+                if (!gameSet) return;
+
+                clearChampionViewerPool();
+                
+                // Restore currentGameData structure so it can be re-saved properly if needed
+                currentGameData = {
+                    scoutedPlayer: gameSet.scoutedPlayer,
+                    teams: gameSet.teams
+                };
+
+                const allChamps = [...gameSet.teams.allies, ...gameSet.teams.enemies];
+                const addChampionPromises = allChamps.map(champId => addChampionToPool(champId));
+                
+                await Promise.all(addChampionPromises);
+
+                enemyChampionIds = new Set(gameSet.teams.enemies);
+                gameNotesTextarea.value = gameSet.notes;
+                gameTitleInput.value = gameSet.title || '';
+                liveGameRiotIdInput.value = gameSet.scoutedPlayer !== "Manual Pool" ? gameSet.scoutedPlayer : "";
+                
+                // Load Haste
+                if (gameSet.globalHaste !== undefined) {
+                    globalHaste = gameSet.globalHaste;
+                    globalHasteInput.value = globalHaste;
+                }
+
+                highRiskFilterContainer.style.display = 'flex';
+                saveGameContainer.style.display = 'block';
+                
+                // Only try to switch tabs if the element exists and is visible
+                const highRiskTabBtn = document.querySelector('.tab-button[data-tab="highRiskAbilitiesTab"]');
+                if(highRiskTabBtn) highRiskTabBtn.click();
+            };
+            
+            const matchCache = new Map();
+            const getMatchDetails = async (matchId, routingValue) => {
+                if (matchCache.has(matchId)) return matchCache.get(matchId);
+                const targetUrl = `https://${routingValue}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
+                const response = await fetch(corsProxy + encodeURIComponent(targetUrl), { headers: { 'X-Riot-Token': apiKey } });
+                if (!response.ok) throw new Error(`API Error getting match details: ${response.statusText}`);
+                const data = await response.json();
+                matchCache.set(matchId, data);
+                return data;
+            };
+
+            init();
+        });
+    </script>
+</body>
+</html>
+
+            // --- LOGIC & HANDLERS ---
+            const updateSavedGame = (id, newTitle, newNotes) => {
+                const gameIndex = savedGameSets.findIndex(g => g.id === id);
+                if (gameIndex > -1) {
+                    savedGameSets[gameIndex].title = newTitle;
+                    savedGameSets[gameIndex].notes = newNotes;
+                    localStorage.setItem('savedGameSets', JSON.stringify(savedGameSets));
+                    editingGameId = null;
+                    renderSavedGameSets();
+                }
+            };
+
+            const addChampionToPool = async (championId) => {
+                if (championPool.has(championId)) {
+                    selectChampion(championId);
+                    return;
+                }
+                if (championData[championId]) {
+                    try {
+                        const champResponse = await fetch(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/en_US/champion/${championId}.json`);
+                        if (!champResponse.ok) throw new Error(`Failed to fetch data for ${championId}`);
+                        const champPayload = await champResponse.json();
+                        const detailedChampData = champPayload.data[championId];
+                        championPool.set(championId, detailedChampData);
+                        
+                        // ADDED: Ensure save controls are visible when manually adding
+                        saveGameContainer.style.display = 'block';
+                        highRiskFilterContainer.style.display = 'flex';
+                        
+                        updateUI();
+                        selectChampion(championId);
+                    } catch (error) {
+                        console.error(`Error in addChampionToPool for ${championId}:`, error);
+                        alert(`Failed to load detailed data for ${championId}. Please try again.`);
+                    }
+                }
+            };
+            
+            // ... rest of existing code ...
